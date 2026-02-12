@@ -8,7 +8,7 @@
 <style>
   body {
     margin: 0;
-    padding: 25px;
+    padding: 20px;
     font-family: Arial, sans-serif;
     background: #ffffff;
   }
@@ -21,14 +21,14 @@
 
   .subtitulo {
     text-align: center;
-    font-size: 13px;
+    font-size: 12px;
     color: #555;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
   }
 
   .acoes {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
   }
 
   button {
@@ -41,24 +41,11 @@
     cursor: pointer;
   }
 
-  /* ===== AGRUPAMENTO POR NÍVEL ===== */
-
-  .nivel {
-    margin-bottom: 35px;
-  }
-
-  .nivel-titulo {
-    font-weight: bold;
-    color: #0b5ed7;
-    margin-bottom: 12px;
-    border-bottom: 2px solid #0b5ed7;
-    padding-bottom: 5px;
-  }
-
-  .grid {
+  /* ===== GRID PRINCIPAL DO ORGANOGRAMA ===== */
+  .organograma {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
+    gap: 20px;
   }
 
   .funcao {
@@ -66,7 +53,9 @@
     border-radius: 12px;
     padding: 10px;
     background: #f0f6ff;
-    min-height: 90px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
   }
 
   .funcao-titulo {
@@ -74,6 +63,10 @@
     font-weight: bold;
     font-size: 13px;
     margin-bottom: 8px;
+    padding: 6px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #0b5ed7;
     color: #0b2b45;
   }
 
@@ -92,14 +85,15 @@
   }
 
   .vazio {
+    margin-top: 10px;
     font-style: italic;
-    color: #888;
-    text-align: center;
+    color: #777;
     font-size: 11px;
+    text-align: center;
   }
 
   .rodape {
-    margin-top: 30px;
+    margin-top: 25px;
     font-size: 11px;
     text-align: right;
     color: #666;
@@ -122,13 +116,13 @@
 <body>
 
 <h1>Organograma Funcional</h1>
-<div class="subtitulo">Estrutura Hierárquica Institucional</div>
+<div class="subtitulo">Estrutura organizacional – Exportação</div>
 
 <div class="acoes">
   <button onclick="window.print()">Exportar para PDF</button>
 </div>
 
-<div id="organograma"></div>
+<div id="organograma" class="organograma"></div>
 
 <div class="rodape" id="dataGeracao"></div>
 
@@ -150,28 +144,7 @@ function montar(hierarchy, people) {
   const container = document.getElementById("organograma");
   container.innerHTML = "";
 
-  // Separação simples por níveis
-  const oficiais = ["CEL","TCEL","MAJ","CAP","1º TEN","2º TEN"];
-  const pracas = ["ASP","ST","1º SGT","2º SGT","3º SGT","CB","SD"];
-
-  criarNivel("OFICIAIS", oficiais, hierarchy, people, container);
-  criarNivel("PRAÇAS", pracas, hierarchy, people, container);
-}
-
-function criarNivel(titulo, listaPostos, hierarchy, people, container) {
-  const nivelDiv = document.createElement("div");
-  nivelDiv.className = "nivel";
-
-  const tituloDiv = document.createElement("div");
-  tituloDiv.className = "nivel-titulo";
-  tituloDiv.textContent = titulo;
-
-  const grid = document.createElement("div");
-  grid.className = "grid";
-
   hierarchy.forEach(h => {
-    if (!listaPostos.includes(h.func)) return;
-
     let pessoasFunc = people.filter(p => p.func === h.func);
 
     if (POSTO_FILTRO !== "TODOS") {
@@ -181,9 +154,9 @@ function criarNivel(titulo, listaPostos, hierarchy, people, container) {
     const bloco = document.createElement("div");
     bloco.className = "funcao";
 
-    const funcTitulo = document.createElement("div");
-    funcTitulo.className = "funcao-titulo";
-    funcTitulo.textContent = h.func;
+    const titulo = document.createElement("div");
+    titulo.className = "funcao-titulo";
+    titulo.textContent = "FUNÇÃO: " + h.func;
 
     const pessoasDiv = document.createElement("div");
     pessoasDiv.className = "pessoas";
@@ -191,7 +164,7 @@ function criarNivel(titulo, listaPostos, hierarchy, people, container) {
     if (pessoasFunc.length === 0) {
       const vazio = document.createElement("div");
       vazio.className = "vazio";
-      vazio.textContent = "Sem pessoas";
+      vazio.textContent = "Sem pessoas cadastradas";
       pessoasDiv.appendChild(vazio);
     } else {
       pessoasFunc.forEach(p => {
@@ -202,14 +175,10 @@ function criarNivel(titulo, listaPostos, hierarchy, people, container) {
       });
     }
 
-    bloco.appendChild(funcTitulo);
+    bloco.appendChild(titulo);
     bloco.appendChild(pessoasDiv);
-    grid.appendChild(bloco);
+    container.appendChild(bloco);
   });
-
-  nivelDiv.appendChild(tituloDiv);
-  nivelDiv.appendChild(grid);
-  container.appendChild(nivelDiv);
 }
 
 function gerarData() {
