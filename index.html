@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Organograma Funcional – Exportação</title>
+<title>Organograma Funcional</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -10,105 +10,86 @@
     margin: 0;
     padding: 20px;
     font-family: Arial, sans-serif;
-    background: #ffffff;
+    background: #f4f6f9;
   }
 
   h1 {
-    text-align: center;
     color: #0b2b45;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
 
-  .subtitulo {
-    text-align: center;
-    font-size: 12px;
-    color: #555;
-    margin-bottom: 20px;
+  #status {
+    font-weight: bold;
+    margin-bottom: 15px;
   }
 
-  .acoes {
-    text-align: center;
-    margin-bottom: 20px;
+  .topo-acoes {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+
+  select, button {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  select {
+    border: 1px solid #ccc;
   }
 
   button {
     background: #0b5ed7;
     color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
   }
 
-  /* ===== GRID PRINCIPAL DO ORGANOGRAMA ===== */
-  .organograma {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+  button:hover {
+    background: #094bb0;
   }
 
   .funcao {
-    border: 2px solid #0b5ed7;
+    background: #ffffff;
     border-radius: 12px;
-    padding: 10px;
-    background: #f0f6ff;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
+    padding: 16px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
 
   .funcao-titulo {
-    text-align: center;
+    font-size: 18px;
     font-weight: bold;
-    font-size: 13px;
-    margin-bottom: 8px;
-    padding: 6px;
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #0b5ed7;
-    color: #0b2b45;
+    color: #0b5ed7;
+    margin-bottom: 14px;
+    border-left: 6px solid #0dcaf0;
+    padding-left: 10px;
   }
 
   .pessoas {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 11px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .pessoa {
-    background: #ffffff;
-    border-radius: 6px;
-    padding: 4px 6px;
-    border: 1px solid #0dcaf0;
+    background: #0dcaf0;
+    color: #053b4c;
+    padding: 10px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    white-space: nowrap;
   }
 
   .vazio {
-    margin-top: 10px;
-    font-style: italic;
     color: #777;
-    font-size: 11px;
-    text-align: center;
-  }
-
-  .rodape {
-    margin-top: 25px;
-    font-size: 11px;
-    text-align: right;
-    color: #666;
-  }
-
-  /* ===== IMPRESSÃO ===== */
-  @media print {
-    .acoes {
-      display: none;
-    }
-
-    @page {
-      size: A4 landscape;
-      margin: 15mm;
-    }
+    font-style: italic;
+    font-weight: bold;
   }
 </style>
 </head>
@@ -116,80 +97,143 @@
 <body>
 
 <h1>Organograma Funcional</h1>
-<div class="subtitulo">Estrutura organizacional – Exportação</div>
+<div id="status">Carregando dados…</div>
 
-<div class="acoes">
-  <button onclick="window.print()">Exportar para PDF</button>
+<div class="topo-acoes">
+  <label>
+    Filtrar por Posto/Graduação:
+    <select id="filtroPosto">
+      <option value="TODOS">Todos</option>
+    </select>
+  </label>
+
+  <button onclick="exportarPDF()">📄 Exportar PDF</button>
 </div>
 
-<div id="organograma" class="organograma"></div>
-
-<div class="rodape" id="dataGeracao"></div>
+<div id="organograma"></div>
 
 <script>
-const BASE =
-  "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
+  /* ============================
+     URL DO APPS SCRIPT (JSONP)
+  ============================ */
+  const BASE =
+    "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
-const params = new URLSearchParams(window.location.search);
-const POSTO_FILTRO = params.get("posto") || "TODOS";
+  const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
-const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
+  let GLOBAL_DATA = null;
 
-function cb(payload) {
-  montar(payload.hierarchy, payload.people);
-  gerarData();
-}
-
-function montar(hierarchy, people) {
-  const container = document.getElementById("organograma");
-  container.innerHTML = "";
-
-  hierarchy.forEach(h => {
-    let pessoasFunc = people.filter(p => p.func === h.func);
-
-    if (POSTO_FILTRO !== "TODOS") {
-      pessoasFunc = pessoasFunc.filter(p => p.posto === POSTO_FILTRO);
+  /* ============================
+     CALLBACK JSONP
+  ============================ */
+  function cb(payload) {
+    if (!payload || payload.error) {
+      document.getElementById("status").innerHTML = "❌ Erro ao carregar dados";
+      return;
     }
 
-    const bloco = document.createElement("div");
-    bloco.className = "funcao";
+    GLOBAL_DATA = payload;
+    document.getElementById("status").innerHTML = "✓ Organograma carregado";
 
-    const titulo = document.createElement("div");
-    titulo.className = "funcao-titulo";
-    titulo.textContent = "FUNÇÃO: " + h.func;
+    preencherFiltro(payload.people);
+    montar(payload.hierarchy, payload.people);
+  }
 
-    const pessoasDiv = document.createElement("div");
-    pessoasDiv.className = "pessoas";
+  /* ============================
+     FILTRO
+  ============================ */
+  function preencherFiltro(people) {
+    const select = document.getElementById("filtroPosto");
+    const postos = [...new Set(people.map(p => p.posto))].sort();
 
-    if (pessoasFunc.length === 0) {
-      const vazio = document.createElement("div");
-      vazio.className = "vazio";
-      vazio.textContent = "Sem pessoas cadastradas";
-      pessoasDiv.appendChild(vazio);
-    } else {
-      pessoasFunc.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "pessoa";
-        card.textContent = `${p.posto} - ${p.nome}`;
-        pessoasDiv.appendChild(card);
-      });
+    postos.forEach(posto => {
+      const option = document.createElement("option");
+      option.value = posto;
+      option.textContent = posto;
+      select.appendChild(option);
+    });
+
+    select.addEventListener("change", aplicarFiltro);
+  }
+
+  function aplicarFiltro() {
+    const filtro = document.getElementById("filtroPosto").value;
+    let people = GLOBAL_DATA.people;
+
+    if (filtro !== "TODOS") {
+      people = people.filter(p => p.posto === filtro);
     }
 
-    bloco.appendChild(titulo);
-    bloco.appendChild(pessoasDiv);
-    container.appendChild(bloco);
-  });
-}
+    montar(GLOBAL_DATA.hierarchy, people);
+  }
 
-function gerarData() {
-  const agora = new Date();
-  document.getElementById("dataGeracao").textContent =
-    "Gerado em: " + agora.toLocaleString("pt-BR");
-}
+  /* ============================
+     MONTAR ORGANOGRAMA
+  ============================ */
+  function montar(hierarchy, people) {
+    const container = document.getElementById("organograma");
+    container.innerHTML = "";
 
-const s = document.createElement("script");
-s.src = DATA_URL;
-document.head.appendChild(s);
+    const filtro = document.getElementById("filtroPosto").value;
+
+    hierarchy.forEach(h => {
+      const pessoasFunc = people.filter(p => p.func === h.func);
+
+      if (filtro !== "TODOS" && pessoasFunc.length === 0) return;
+
+      const bloco = document.createElement("div");
+      bloco.className = "funcao";
+
+      const titulo = document.createElement("div");
+      titulo.className = "funcao-titulo";
+      titulo.textContent = "FUNÇÃO: " + h.func;
+
+      const pessoasDiv = document.createElement("div");
+      pessoasDiv.className = "pessoas";
+
+      if (pessoasFunc.length === 0) {
+        const vazio = document.createElement("div");
+        vazio.className = "vazio";
+        vazio.textContent = "Sem pessoas cadastradas";
+        pessoasDiv.appendChild(vazio);
+      } else {
+        pessoasFunc.forEach(p => {
+          const card = document.createElement("div");
+          card.className = "pessoa";
+          card.textContent = `${p.posto} - ${p.nome}`;
+          pessoasDiv.appendChild(card);
+        });
+      }
+
+      bloco.appendChild(titulo);
+      bloco.appendChild(pessoasDiv);
+      container.appendChild(bloco);
+    });
+  }
+
+  /* ============================
+     EXPORTAR PDF
+  ============================ */
+  function exportarPDF() {
+    const filtro = document.getElementById("filtroPosto").value;
+    let url = "export.html";
+
+    if (filtro !== "TODOS") {
+      url += "?posto=" + encodeURIComponent(filtro);
+    }
+
+    window.open(url, "_blank");
+  }
+
+  /* ============================
+     INJETAR JSONP
+  ============================ */
+  const s = document.createElement("script");
+  s.src = DATA_URL;
+  s.onerror = () => {
+    document.getElementById("status").innerHTML = "❌ Erro ao carregar script de dados";
+  };
+  document.head.appendChild(s);
 </script>
 
 </body>
