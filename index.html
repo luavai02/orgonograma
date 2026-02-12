@@ -9,12 +9,12 @@
 
   <style>
     html, body { margin:0; padding:0; background:#fff; font-family: Arial, sans-serif; }
-    body { overflow-x: hidden; } /* evita barra lateral */
-
+    body { overflow-x: hidden; }
     .page { max-width: 1200px; margin: 0 auto; padding: 18px; }
-    .title { font-size: 18px; font-weight: 900; margin-bottom: 12px; color:#0b1b2a; }
+    .title { font-size: 22px; font-weight: 900; margin-bottom: 12px; color:#0b1b2a; }
+    #status { font-size: 14px; color:#333; margin: 8px 0 14px; }
+    #debug  { font-size: 12px; color:#666; white-space: pre-wrap; background:#f5f5f5; padding:10px; border-radius:8px; }
 
-    /* visual azul */
     .box-funcao{
       background:#0B5ED7; color:#fff; border-radius:18px;
       padding:14px 16px; font-weight:900; text-transform:uppercase;
@@ -27,9 +27,7 @@
       box-shadow:0 4px 14px rgba(0,0,0,.12);
       width:230px; text-align:center; line-height:1.15; white-space:normal;
     }
-
-    #chart { width: 100%; overflow-x: hidden; }
-
+    #chart { width: 100%; overflow-x: hidden; margin-top: 12px; }
     .google-visualization-orgchart-node { border:none!important; }
     .google-visualization-orgchart-node div { white-space:normal!important; }
     .google-visualization-orgchart-lineleft,
@@ -41,46 +39,65 @@
 <body>
   <div class="page">
     <div class="title">Organograma funcional</div>
-    <div id="chart">Carregando…</div>
+    <div id="status">Carregando…</div>
+    <div id="debug"></div>
+    <div id="chart"></div>
   </div>
 
   <script>
-    // ✅ Seu Apps Script como fonte de dados (JSONP)
-    const DATA_URL =
-      "https://script.google.com/macros/s/AKfycbyBZqjlh4cyAOnH-GiZVGYy1lw7YnZrdV5-RLEltltdJj3FWLoJ78BSFazoY0NoEZHB1A/exec" +
-      "?mode=data&callback=cb";
+    // 👉 COLE A SUA URL /exec AQUI:
+    const BASE_EXEC =
+      "https://script.google.com/macros/s/AKfycbyBZqjlh4cyAOnH-GiZVGYy1lw7YnZrdV5-RLEltltdJj3FWLoJ78BSFazoY0NoEZHB1A/exec";
 
-    // JSONP callback (tem que se chamar igual ao callback=cb)
-    function cb(payload) {
-      if (payload.error) {
-        document.getElementById("chart").innerText = payload.error;
+    const DATA_URL = BASE_EXEC + "?mode=data&callback=cb&_=" + Date.now();
+
+    const statusEl = document.getElementById("status");
+    const debugEl  = document.getElementById("debug");
+
+    // timeout: se o cb não for chamado em 8s, mostramos aviso
+    const t = setTimeout(() => {
+      statusEl.textContent = "❌ Não retornou dados (callback não foi chamado).";
+      debugEl.textContent =
+        "Verifique se a URL de dados abre no navegador e retorna algo assim: cb({...});\n\n" +
+        "URL usada:\n" + DATA_URL;
+    }, 8000);
+
+    window.cb = function(payload) {
+      clearTimeout(t);
+
+      if (!payload || payload.error) {
+        statusEl.textContent = "❌ Erro ao carregar dados.";
+        debugEl.textContent = JSON.stringify(payload, null, 2);
         return;
       }
+
+      statusEl.textContent = "✅ Dados carregados. Desenhando organograma…";
+      debugEl.textContent =
+        "updatedAt: " + payload.updatedAt + "\n" +
+        "hierarchy: " + (payload.hierarchy?.length || 0) + " linhas\n" +
+        "people: " + (payload.people?.length || 0) + " pessoas";
+
       google.charts.load('current', {packages:['orgchart']});
       google.charts.setOnLoadCallback(() => draw(payload));
-    }
+    };
 
     function draw(payload) {
       const { hierarchy, people } = payload;
 
-      // pessoas por função
       const peopleByFunc = new Map();
       for (const p of people) {
         if (!peopleByFunc.has(p.func)) peopleByFunc.set(p.func, []);
         peopleByFunc.get(p.func).push(p);
       }
 
-      // rows = [Name, Manager, ToolTip]
       const rows = [];
 
-      // hierarquia de funções
       for (const h of hierarchy) {
         rows.push([nodeFunc(h.func), h.sup ? nodeFunc(h.sup) : "", h.func]);
       }
 
-      // pessoas embaixo da função
       for (const [func, list] of peopleByFunc.entries()) {
-        rows.push([nodeFunc(func), "", func]); // garante nó da função
+        rows.push([nodeFunc(func), "", func]);
         for (const p of list) {
           const label = `${p.posto} - ${p.nome}`;
           rows.push([nodePessoa(label), nodeFunc(func), func]);
@@ -96,7 +113,7 @@
       const chart = new google.visualization.OrgChart(document.getElementById('chart'));
       chart.draw(data, {allowHtml:true});
 
-      window.scrollTo(0,0);
+      statusEl.textContent = "✅ Pronto!";
     }
 
     function esc(s){
@@ -111,9 +128,14 @@
       return { v: "PESS:" + txt, f: `<div class="box-pessoa">${esc(txt)}</div>` };
     }
 
-    // injeta script JSONP (evita cache com Date.now)
+    // injeta JSONP
     const s = document.createElement("script");
-    s.src = DATA_URL + "&_=" + Date.now();
+    s.src = DATA_URL;
+    s.onerror = () => {
+      clearTimeout(t);
+      statusEl.textContent = "❌ Erro ao carregar o script JSONP.";
+      debugEl.textContent = "Falha ao abrir:\n" + DATA_URL;
+    };
     document.head.appendChild(s);
   </script>
 </body>
