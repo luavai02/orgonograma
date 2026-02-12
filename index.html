@@ -15,12 +15,23 @@
 
   h1 {
     color: #0b2b45;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
 
   #status {
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+  }
+
+  .filtro-box {
+    margin-bottom: 25px;
+  }
+
+  select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-weight: bold;
   }
 
   .funcao {
@@ -68,25 +79,62 @@
 
 <h1>Organograma Funcional</h1>
 <div id="status">Carregando dados…</div>
+
+<div class="filtro-box">
+  Filtrar por Posto/Graduação:
+  <select id="filtroPosto">
+    <option value="TODOS">Todos</option>
+  </select>
+</div>
+
 <div id="organograma"></div>
 
 <script>
-  // URL CORRETA DO SEU APPS SCRIPT (JSONP)
   const BASE =
     "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
   const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
-  // CALLBACK JSONP
+  let GLOBAL_DATA = null;
+
   function cb(payload) {
     if (!payload || payload.error) {
       document.getElementById("status").innerHTML = "❌ Erro ao carregar dados";
-      console.error(payload);
       return;
     }
 
+    GLOBAL_DATA = payload;
+
     document.getElementById("status").innerHTML = "✓ Organograma carregado";
+
+    preencherFiltro(payload.people);
     montar(payload.hierarchy, payload.people);
+  }
+
+  function preencherFiltro(people) {
+    const select = document.getElementById("filtroPosto");
+
+    const postos = [...new Set(people.map(p => p.posto))].sort();
+
+    postos.forEach(posto => {
+      const option = document.createElement("option");
+      option.value = posto;
+      option.textContent = posto;
+      select.appendChild(option);
+    });
+
+    select.addEventListener("change", aplicarFiltro);
+  }
+
+  function aplicarFiltro() {
+    const filtro = document.getElementById("filtroPosto").value;
+    let people = GLOBAL_DATA.people;
+
+    if (filtro !== "TODOS") {
+      people = people.filter(p => p.posto === filtro);
+    }
+
+    montar(GLOBAL_DATA.hierarchy, people);
   }
 
   function montar(hierarchy, people) {
@@ -94,6 +142,11 @@
     container.innerHTML = "";
 
     hierarchy.forEach(h => {
+
+      const pessoasFunc = people.filter(p => p.func === h.func);
+
+      if (pessoasFunc.length === 0) return;
+
       const bloco = document.createElement("div");
       bloco.className = "funcao";
 
@@ -104,21 +157,12 @@
       const pessoasDiv = document.createElement("div");
       pessoasDiv.className = "pessoas";
 
-      const pessoasFunc = people.filter(p => p.func === h.func);
-
-      if (pessoasFunc.length === 0) {
-        const vazio = document.createElement("div");
-        vazio.className = "vazio";
-        vazio.textContent = "Sem pessoas cadastradas";
-        pessoasDiv.appendChild(vazio);
-      } else {
-        pessoasFunc.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "pessoa";
-          card.textContent = `${p.posto} - ${p.nome}`;
-          pessoasDiv.appendChild(card);
-        });
-      }
+      pessoasFunc.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "pessoa";
+        card.textContent = `${p.posto} - ${p.nome}`;
+        pessoasDiv.appendChild(card);
+      });
 
       bloco.appendChild(titulo);
       bloco.appendChild(pessoasDiv);
@@ -126,12 +170,8 @@
     });
   }
 
-  // INJETAR SCRIPT JSONP
   const s = document.createElement("script");
   s.src = DATA_URL;
-  s.onerror = () => {
-    document.getElementById("status").innerHTML = "❌ Erro ao carregar script";
-  };
   document.head.appendChild(s);
 </script>
 
