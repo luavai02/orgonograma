@@ -23,15 +23,33 @@
     margin-bottom: 15px;
   }
 
-  .filtro-box {
+  .topo-acoes {
+    display: flex;
+    align-items: center;
+    gap: 15px;
     margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+
+  select, button {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
   }
 
   select {
-    padding: 8px 12px;
-    border-radius: 8px;
     border: 1px solid #ccc;
-    font-weight: bold;
+  }
+
+  button {
+    background: #0b5ed7;
+    color: #fff;
+  }
+
+  button:hover {
+    background: #094bb0;
   }
 
   .funcao {
@@ -81,11 +99,15 @@
 <h1>Organograma Funcional</h1>
 <div id="status">Carregando dados…</div>
 
-<div class="filtro-box">
-  Filtrar por Posto/Graduação:
-  <select id="filtroPosto">
-    <option value="TODOS">Todos</option>
-  </select>
+<div class="topo-acoes">
+  <label>
+    Filtrar por Posto/Graduação:
+    <select id="filtroPosto">
+      <option value="TODOS">Todos</option>
+    </select>
+  </label>
+
+  <button onclick="exportarPDF()">📄 Exportar PDF</button>
 </div>
 
 <div id="organograma"></div>
@@ -107,12 +129,10 @@
   function cb(payload) {
     if (!payload || payload.error) {
       document.getElementById("status").innerHTML = "❌ Erro ao carregar dados";
-      console.error(payload);
       return;
     }
 
     GLOBAL_DATA = payload;
-
     document.getElementById("status").innerHTML = "✓ Organograma carregado";
 
     preencherFiltro(payload.people);
@@ -120,11 +140,10 @@
   }
 
   /* ============================
-     FILTRO DE POSTO
+     FILTRO
   ============================ */
   function preencherFiltro(people) {
     const select = document.getElementById("filtroPosto");
-
     const postos = [...new Set(people.map(p => p.posto))].sort();
 
     postos.forEach(posto => {
@@ -158,10 +177,8 @@
     const filtro = document.getElementById("filtroPosto").value;
 
     hierarchy.forEach(h => {
-
       const pessoasFunc = people.filter(p => p.func === h.func);
 
-      // Se estiver filtrando por posto, esconder funções vazias
       if (filtro !== "TODOS" && pessoasFunc.length === 0) return;
 
       const bloco = document.createElement("div");
@@ -195,7 +212,21 @@
   }
 
   /* ============================
-     INJETAR SCRIPT JSONP
+     EXPORTAR PDF
+  ============================ */
+  function exportarPDF() {
+    const filtro = document.getElementById("filtroPosto").value;
+    let url = "export.html";
+
+    if (filtro !== "TODOS") {
+      url += "?posto=" + encodeURIComponent(filtro);
+    }
+
+    window.open(url, "_blank");
+  }
+
+  /* ============================
+     INJETAR JSONP
   ============================ */
   const s = document.createElement("script");
   s.src = DATA_URL;
