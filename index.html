@@ -1,179 +1,242 @@
-<script>
-  /* ============================
-     URL DO APPS SCRIPT (JSONP)
-  ============================ */
-  const BASE =
-    "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Organograma Funcional</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
-
-  let GLOBAL_DATA = null;
-
-  /* ============================
-     NORMALIZA TEXTO (evita mismatch)
-  ============================ */
-  function norm(t) {
-    return String(t || "")
-      .trim()
-      .toUpperCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-  }
-
-  /* ============================
-     CALLBACK JSONP
-  ============================ */
-  function cb(payload) {
-    const statusEl = document.getElementById("status");
-
-    if (!payload || payload.error) {
-      statusEl.innerHTML = "❌ Erro ao carregar dados" + (payload?.error ? `: ${payload.error}` : "");
-      console.error("Payload inválido:", payload);
-      return;
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
     }
 
-    GLOBAL_DATA = payload;
-
-    const peopleCount = Array.isArray(payload.people) ? payload.people.length : 0;
-    const hierCount = Array.isArray(payload.hierarchy) ? payload.hierarchy.length : 0;
-
-    statusEl.innerHTML = `✓ Organograma carregado (Pessoas: ${peopleCount} | Postos: ${hierCount})`;
-
-    preencherFiltro(payload.people);
-    montar(payload.hierarchy, payload.people);
-  }
-
-  /* ============================
-     FILTRO
-  ============================ */
-  function preencherFiltro(people) {
-    const select = document.getElementById("filtroPosto");
-
-    // limpa opções antigas e mantém "Todos"
-    select.innerHTML = `<option value="TODOS">Todos</option>`;
-
-    const postos = [...new Set((people || []).map(p => norm(p.posto)).filter(Boolean))].sort();
-
-    postos.forEach(postoNorm => {
-      const option = document.createElement("option");
-      option.value = postoNorm;       // valor normalizado
-      option.textContent = postoNorm; // exibe normalizado (CEL/MAJ etc)
-      select.appendChild(option);
-    });
-
-    // evita adicionar múltiplos listeners se recarregar
-    select.onchange = aplicarFiltro;
-  }
-
-  function aplicarFiltro() {
-    const filtro = document.getElementById("filtroPosto").value;
-    let people = GLOBAL_DATA.people || [];
-
-    if (filtro !== "TODOS") {
-      people = people.filter(p => norm(p.posto) === filtro);
+    h1 {
+      color: #0b2b45;
+      margin-bottom: 6px;
     }
 
-    montar(GLOBAL_DATA.hierarchy || [], people);
-  }
-
-  /* ============================
-     MONTAR ORGANOGRAMA (por POSTO)
-  ============================ */
-  function montar(hierarchy, people) {
-    const container = document.getElementById("organograma");
-    container.innerHTML = "";
-
-    people = people || [];
-    hierarchy = hierarchy || [];
-
-    // Indexa pessoas por POSTO normalizado
-    const peopleByPosto = new Map();
-    people.forEach(p => {
-      const postoKey = norm(p.posto);
-      if (!postoKey) return;
-
-      if (!peopleByPosto.has(postoKey)) peopleByPosto.set(postoKey, []);
-      peopleByPosto.get(postoKey).push({
-        ...p,
-        _nomeKey: norm(p.nome)
-      });
-    });
-
-    // Ordena pessoas por nome dentro de cada posto
-    for (const [k, arr] of peopleByPosto.entries()) {
-      arr.sort((a, b) => a._nomeKey.localeCompare(b._nomeKey));
+    #status {
+      font-weight: bold;
+      margin-bottom: 15px;
     }
 
-    // Lista de postos a renderizar:
-    // 1) se hierarchy tiver valores, usa ela (ordem desejada)
-    // 2) senão, usa os postos encontrados nas pessoas
-    const postosDaHierarquia = hierarchy
-      .map(h => norm(h.func)) // aqui "func" representa o POSTO na sua hierarquia
-      .filter(Boolean);
-
-    const postosFallback = Array.from(peopleByPosto.keys()).sort();
-
-    const postosParaRender = postosDaHierarquia.length ? postosDaHierarquia : postosFallback;
-
-    if (!postosParaRender.length) {
-      container.innerHTML = `<div class="vazio">Nenhum dado para exibir.</div>`;
-      return;
+    .topo-acoes {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
     }
 
-    postosParaRender.forEach(postoKey => {
-      const pessoasDoPosto = peopleByPosto.get(postoKey) || [];
+    select, button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-      const bloco = document.createElement("div");
-      bloco.className = "funcao";
+    select {
+      border: 1px solid #ccc;
+    }
 
-      const titulo = document.createElement("div");
-      titulo.className = "funcao-titulo";
-      titulo.textContent = "POSTO/GRADUAÇÃO: " + postoKey;
+    button {
+      background: #0b5ed7;
+      color: #fff;
+    }
 
-      const pessoasDiv = document.createElement("div");
-      pessoasDiv.className = "pessoas";
+    button:hover {
+      background: #094bb0;
+    }
 
-      if (pessoasDoPosto.length === 0) {
-        const vazio = document.createElement("div");
-        vazio.className = "vazio";
-        vazio.textContent = "Sem pessoas cadastradas";
-        pessoasDiv.appendChild(vazio);
-      } else {
-        pessoasDoPosto.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "pessoa";
-          card.textContent = `${p.posto} - ${p.nome}`;
-          pessoasDiv.appendChild(card);
-        });
+    .funcao {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .funcao-titulo {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5ed7;
+      margin-bottom: 14px;
+      border-left: 6px solid #0dcaf0;
+      padding-left: 10px;
+    }
+
+    .pessoas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pessoa {
+      background: #0dcaf0;
+      color: #053b4c;
+      padding: 10px 14px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 13px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      white-space: nowrap;
+    }
+
+    .vazio {
+      color: #777;
+      font-style: italic;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Organograma Funcional</h1>
+  <div id="status">Carregando dados…</div>
+
+  <div class="topo-acoes">
+    <label>
+      Filtrar por Posto/Graduação:
+      <select id="filtroPosto">
+        <option value="TODOS">Todos</option>
+      </select>
+    </label>
+
+    <button onclick="exportarPDF()">📄 Exportar PDF</button>
+  </div>
+
+  <div id="organograma"></div>
+
+  <script>
+    /* ============================
+       URL DO APPS SCRIPT (JSONP)
+    ============================ */
+    const BASE =
+      "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
+
+    const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
+    let GLOBAL_DATA = null;
+
+    /* ============================
+       CALLBACK JSONP
+    ============================ */
+    function cb(payload) {
+      if (!payload || payload.error) {
+        document.getElementById("status").innerHTML =
+          "❌ Erro ao carregar dados";
+        return;
       }
 
-      bloco.appendChild(titulo);
-      bloco.appendChild(pessoasDiv);
-      container.appendChild(bloco);
-    });
-  }
+      GLOBAL_DATA = payload;
+      document.getElementById("status").innerHTML =
+        "✓ Organograma carregado";
 
-  /* ============================
-     EXPORTAR PDF
-  ============================ */
-  function exportarPDF() {
-    const filtro = document.getElementById("filtroPosto").value;
-    let url = "export.html";
-
-    if (filtro !== "TODOS") {
-      url += "?posto=" + encodeURIComponent(filtro);
+      preencherFiltro(payload.people);
+      montar(payload.hierarchy, payload.people);
     }
 
-    window.open(url, "_blank");
-  }
+    /* ============================
+       FILTRO
+    ============================ */
+    function preencherFiltro(people) {
+      const select = document.getElementById("filtroPosto");
+      const postos = [...new Set(people.map(p => p.posto))].sort();
 
-  /* ============================
-     INJETAR JSONP
-  ============================ */
-  const s = document.createElement("script");
-  s.src = DATA_URL;
-  s.onerror = () => {
-    document.getElementById("status").innerHTML = "❌ Erro ao carregar script de dados (verifique se o Web App está público).";
-  };
-  document.head.appendChild(s);
-</script>
+      postos.forEach(posto => {
+        const option = document.createElement("option");
+        option.value = posto;
+        option.textContent = posto;
+        select.appendChild(option);
+      });
+
+      select.addEventListener("change", aplicarFiltro);
+    }
+
+    function aplicarFiltro() {
+      const filtro = document.getElementById("filtroPosto").value;
+      let people = GLOBAL_DATA.people;
+
+      if (filtro !== "TODOS") {
+        people = people.filter(p => p.posto === filtro);
+      }
+
+      montar(GLOBAL_DATA.hierarchy, people);
+    }
+
+    /* ============================
+       MONTAR ORGANOGRAMA
+    ============================ */
+    function montar(hierarchy, people) {
+      const container = document.getElementById("organograma");
+      container.innerHTML = "";
+
+      const filtro = document.getElementById("filtroPosto").value;
+
+      hierarchy.forEach(h => {
+        const pessoasFunc = people.filter(p => p.func === h.func);
+
+        if (filtro !== "TODOS" && pessoasFunc.length === 0) return;
+
+        const bloco = document.createElement("div");
+        bloco.className = "funcao";
+
+        const titulo = document.createElement("div");
+        titulo.className = "funcao-titulo";
+        titulo.textContent = "FUNÇÃO: " + h.func;
+
+        const pessoasDiv = document.createElement("div");
+        pessoasDiv.className = "pessoas";
+
+        if (pessoasFunc.length === 0) {
+          const vazio = document.createElement("div");
+          vazio.className = "vazio";
+          vazio.textContent = "Sem pessoas cadastradas";
+          pessoasDiv.appendChild(vazio);
+        } else {
+          pessoasFunc.forEach(p => {
+            const card = document.createElement("div");
+            card.className = "pessoa";
+            card.textContent = `${p.posto} - ${p.nome}`;
+            pessoasDiv.appendChild(card);
+          });
+        }
+
+        bloco.appendChild(titulo);
+        bloco.appendChild(pessoasDiv);
+        container.appendChild(bloco);
+      });
+    }
+
+    /* ============================
+       EXPORTAR PDF
+    ============================ */
+    function exportarPDF() {
+      const filtro = document.getElementById("filtroPosto").value;
+      let url = "export.html";
+
+      if (filtro !== "TODOS") {
+        url += "?posto=" + encodeURIComponent(filtro);
+      }
+
+      window.open(url, "_blank");
+    }
+
+    /* ============================
+       INJETAR JSONP
+    ============================ */
+    const s = document.createElement("script");
+    s.src = DATA_URL;
+    s.onerror = () => {
+      document.getElementById("status").innerHTML =
+        "❌ Erro ao carregar script de dados";
+    };
+    document.head.appendChild(s);
+  </script>
+
+</body>
+</html>
