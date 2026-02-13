@@ -1,117 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>Organograma Funcional</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-  body {
-    margin: 0;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-    background: #f4f6f9;
-  }
-
-  h1 {
-    color: #0b2b45;
-    margin-bottom: 6px;
-  }
-
-  #status {
-    font-weight: bold;
-    margin-bottom: 15px;
-  }
-
-  .topo-acoes {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 25px;
-    flex-wrap: wrap;
-  }
-
-  select, button {
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  select {
-    border: 1px solid #ccc;
-  }
-
-  button {
-    background: #0b5ed7;
-    color: #fff;
-  }
-
-  button:hover {
-    background: #094bb0;
-  }
-
-  .funcao {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  }
-
-  .funcao-titulo {
-    font-size: 18px;
-    font-weight: bold;
-    color: #0b5ed7;
-    margin-bottom: 14px;
-    border-left: 6px solid #0dcaf0;
-    padding-left: 10px;
-  }
-
-  .pessoas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .pessoa {
-    background: #0dcaf0;
-    color: #053b4c;
-    padding: 10px 14px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 13px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    white-space: nowrap;
-  }
-
-  .vazio {
-    color: #777;
-    font-style: italic;
-    font-weight: bold;
-  }
-</style>
-</head>
-
-<body>
-
-<h1>Organograma Funcional</h1>
-<div id="status">Carregando dados…</div>
-
-<div class="topo-acoes">
-  <label>
-    Filtrar por Posto/Graduação:
-    <select id="filtroPosto">
-      <option value="TODOS">Todos</option>
-    </select>
-  </label>
-
-  <button onclick="exportarPDF()">📄 Exportar PDF</button>
-</div>
-
-<div id="organograma"></div>
-
 <script>
   /* ============================
      URL DO APPS SCRIPT (JSONP)
@@ -242,7 +128,7 @@
 
       const titulo = document.createElement("div");
       titulo.className = "funcao-titulo";
-      titulo.textContent = "POSTO/GRADUAÇÃO: " + postoKey + ` (${pessoasDoPosto.length})`;
+      titulo.textContent = "POSTO/GRADUAÇÃO: " + postoKey;
 
       const pessoasDiv = document.createElement("div");
       pessoasDiv.className = "pessoas";
@@ -287,11 +173,7 @@
   const s = document.createElement("script");
   s.src = DATA_URL;
   s.onerror = () => {
-    document.getElementById("status").innerHTML =
-      "❌ Erro ao carregar script de dados (verifique se o Web App está público e a URL está correta).";
+    document.getElementById("status").innerHTML = "❌ Erro ao carregar script de dados (verifique se o Web App está público).";
   };
   document.head.appendChild(s);
 </script>
-
-</body>
-</html>
