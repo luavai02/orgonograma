@@ -1,322 +1,267 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Organograma Funcional — Exportação</title>
+<meta charset="UTF-8" />
+<title>Organograma Funcional – Exportação</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+  :root{
+    --blue-900:#0b2b45;
+    --blue-700:#0b5ed7;
+    --line:#9db8d3;
+    --box-bg:#eef6ff;
+    --box-border:#7fb0ff;
+    --chip-bg:#e6fbff;
+    --chip-border:#86dff2;
+  }
 
-  <style>
-    :root{
-      --azul:#0b5ed7;
-      --azul-claro:#0dcaf0;
-      --fundo:#ffffff;
-      --card:#eef6ff;
-      --borda:#77a8ff;
-      --texto:#0b2b45;
-      --sombra: 0 10px 24px rgba(0,0,0,.10);
-    }
+  body{ margin:0; padding:18px 18px 28px; font-family: Arial, sans-serif; background:#fff; color: var(--blue-900); }
+  h1{ text-align:center; margin:0 0 6px 0; font-size:22px; }
+  .sub{ text-align:center; margin:0 0 16px 0; font-weight:bold; color:#456; font-size:12px; }
 
-    body{
-      margin:0;
-      font-family: Arial, sans-serif;
-      background: var(--fundo);
-      color: var(--texto);
-    }
+  .acoes{ text-align:center; margin: 10px 0 16px; }
+  button{
+    background: var(--blue-700);
+    color:#fff; border:none;
+    padding:10px 16px; border-radius:10px;
+    font-weight:bold; cursor:pointer;
+    box-shadow: 0 8px 18px rgba(11,94,215,.18);
+  }
+  button:hover{ background:#094bb0; }
 
-    .wrap{
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 28px 18px 40px;
-      text-align:center;
-    }
+  .wrap{ display:flex; justify-content:center; align-items:flex-start; width:100%; padding: 8px 6px 20px; }
+  .tree{ display:inline-block; margin:0 auto; }
 
-    h1{
-      margin: 0 0 6px;
-      font-size: 34px;
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
+  .tree ul{ padding-top: 18px; position: relative; padding-left: 0; margin:0; display:flex; justify-content:center; gap: 18px; }
+  .tree li{ list-style:none; text-align:center; position: relative; padding: 18px 10px 0 10px; margin:0; }
 
-    .sub{
-      margin: 0 0 18px;
-      font-weight: 700;
-      color: #2b3d55;
-      opacity: .9;
-    }
+  .tree li::before, .tree li::after{
+    content:''; position:absolute; top:0; right:50%;
+    border-top: 2px solid var(--line); width:50%; height:18px;
+  }
+  .tree li::after{ right:auto; left:50%; border-left: 2px solid var(--line); }
+  .tree li:only-child::after, .tree li:only-child::before{ display:none; }
+  .tree li:first-child::before{ border:none; }
+  .tree li:last-child::after{ border:none; }
 
-    .actions{
-      display:flex;
-      justify-content:center;
-      gap:12px;
-      margin: 14px 0 20px;
-      flex-wrap: wrap;
-    }
+  .tree li .node::before{
+    content:''; position:absolute; top:-18px; left:50%;
+    transform:translateX(-50%);
+    border-left:2px solid var(--line); width:0; height:18px;
+  }
+  .tree > ul > li > .node::before{ display:none; }
+  .tree > ul > li::before, .tree > ul > li::after{ display:none; }
 
-    .btn{
-      border:0;
-      background: var(--azul);
-      color:#fff;
-      font-weight:900;
-      padding: 12px 18px;
-      border-radius: 12px;
-      cursor:pointer;
-      box-shadow: 0 10px 18px rgba(11,94,215,.20);
-    }
-    .btn:hover{ filter: brightness(.96); }
+  .node{
+    position: relative;
+    background: var(--box-bg);
+    border: 2px solid var(--box-border);
+    border-radius: 10px;
+    min-width: 240px;
+    max-width: 360px;
+    padding: 12px 12px 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    display: inline-block;
+  }
+  .node-title{ font-weight: 900; color: var(--blue-700); font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
+  .node-name{ font-weight: 900; color: var(--blue-900); font-size: 14px; margin-bottom: 10px; }
 
-    .status{
-      margin: 10px 0 18px;
-      font-weight: 800;
-    }
-    .status.ok{ color:#0a7a3d; }
-    .status.err{ color:#c91c1c; }
+  .chips{ display:flex; flex-wrap:wrap; gap: 6px; justify-content:center; }
+  .chip{
+    border:1px solid var(--chip-border);
+    background: var(--chip-bg);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-weight: 800;
+    font-size: 11px;
+    color:#053b4c;
+    white-space: nowrap;
+  }
+  .empty{ font-style: italic; color:#667; font-weight: bold; font-size: 11px; padding: 4px 0; }
 
-    /* Centraliza o organograma */
-    #chartWrap{
-      display:flex;
-      justify-content:center;
-      overflow: visible;
-    }
+  .msg{ text-align:center; font-weight:900; color:#334; padding: 18px 10px; }
 
-    #chart{
-      overflow: visible;
-      padding: 10px 0;
-    }
-
-    /* Ajustes nos nós do OrgChart */
-    .google-visualization-orgchart-node{
-      border: none !important;
-      background: transparent !important;
-    }
-
-    /* Caixa padrão */
-    .box{
-      width: 320px;
-      background: var(--card);
-      border: 2px solid var(--borda);
-      border-radius: 14px;
-      padding: 14px 14px 12px;
-      box-shadow: var(--sombra);
-      text-align:center;
-    }
-
-    .box .tag{
-      display:inline-block;
-      background: rgba(11,94,215,.10);
-      color: var(--azul);
-      font-weight: 900;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      letter-spacing: .5px;
-      margin-bottom: 10px;
-    }
-
-    .box .func{
-      font-size: 22px;
-      font-weight: 900;
-      color: #0a2f5a;
-      margin: 0 0 8px;
-      text-transform: uppercase;
-    }
-
-    .box .meta{
-      font-size: 13px;
-      font-weight: 800;
-      opacity: .85;
-    }
-
-    .box .meta small{
-      display:block;
-      margin-top: 4px;
-      opacity: .85;
-      font-style: italic;
-      font-weight: 800;
-    }
-
-    /* Linhas do chart */
-    .google-visualization-orgchart-lineleft,
-    .google-visualization-orgchart-lineright,
-    .google-visualization-orgchart-linebottom{
-      border-color: #7aa7d6 !important;
-    }
-
-    /* PRINT */
-    @media print {
-      body { background: #fff; }
-      .actions, .status { display: none !important; }
-      .wrap{ max-width: none; padding: 0; }
-      #chartWrap{ justify-content:center; }
-      /* Evita cortar caixas */
-      #chart { zoom: 0.9; }
-      @page { margin: 12mm; }
-    }
-  </style>
+  @media print{
+    .acoes{ display:none !important; }
+    body{ padding: 0; }
+    .wrap{ padding: 0; }
+    @page{ size: A4 landscape; margin: 12mm; }
+    .tree{ transform: scale(.92); transform-origin: top center; }
+    .node{ box-shadow:none !important; }
+  }
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1>Organograma Funcional</h1>
-    <div class="sub" id="subTitle">Exportação</div>
+<h1>Organograma Funcional</h1>
+<p class="sub" id="subtitulo">Carregando…</p>
 
-    <div class="status" id="status">Carregando…</div>
+<div class="acoes">
+  <button onclick="window.print()">Exportar para PDF</button>
+</div>
 
-    <div class="actions">
-      <button class="btn" onclick="window.print()">Exportar para PDF</button>
-    </div>
+<div class="wrap">
+  <div id="tree" class="tree"></div>
+</div>
+<div id="msg" class="msg" style="display:none;"></div>
 
-    <div id="chartWrap">
-      <div id="chart"></div>
-    </div>
-  </div>
+<script>
+  /* ✅ COLOQUE AQUI A BASE CERTA (A MESMA QUE FUNCIONA NO INDEX) */
+  const BASE = "COLE_AQUI_SUA_URL_EXEC";
 
-  <script>
-    /* ============================
-      1) CONFIG
-    ============================ */
+  // lê filtro (?posto=...)
+  const params = new URLSearchParams(window.location.search);
+  const filtroRaw = params.get("posto") || "TODOS";
 
-    // ✅ COLOQUE A SUA URL DO WEB APP AQUI (sem parâmetros)
-    const BASE = "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
+  function norm(t){
+    return String(t ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+  const FILTRO = norm(filtroRaw);
 
-    const params = new URLSearchParams(location.search);
-    const filtroPosto = (params.get("posto") || "TODOS").trim();
+  document.getElementById("subtitulo").textContent =
+    (FILTRO === "TODOS") ? "Exportação (Todos os postos)" : `Exportação (Filtro: ${filtroRaw})`;
 
-    document.getElementById("subTitle").textContent =
-      (filtroPosto === "TODOS")
-        ? "Exportação (Todos os postos)"
-        : "Exportação (Filtro: " + filtroPosto + ")";
+  function showMsg(text){
+    const msg = document.getElementById("msg");
+    msg.textContent = text;
+    msg.style.display = "block";
+  }
 
-    function setStatusOk(msg){
-      const el = document.getElementById("status");
-      el.className = "status ok";
-      el.textContent = "✓ " + msg;
-    }
-    function setStatusErr(msg){
-      const el = document.getElementById("status");
-      el.className = "status err";
-      el.textContent = "✕ " + msg;
-    }
-
-    /* ============================
-      2) GOOGLE CHARTS
-    ============================ */
-    google.charts.load("current", { packages: ["orgchart"] });
-
-    /* ============================
-      3) JSONP: callback que o Apps Script chama
-    ============================ */
-    window.cb = function(payload){
-      try{
-        if(!payload || payload.error){
-          setStatusErr(payload?.error || "Erro ao carregar dados.");
-          return;
-        }
-
-        // Filtra pessoas pelo POSTO/GRADUAÇÃO quando vier ?posto=
-        let people = Array.isArray(payload.people) ? payload.people : [];
-        if(filtroPosto !== "TODOS"){
-          people = people.filter(p => (p.posto || "").trim().toUpperCase() === filtroPosto.toUpperCase());
-        }
-
-        // Hierarquia sempre completa (todas as funções)
-        const hierarchy = Array.isArray(payload.hierarchy) ? payload.hierarchy : [];
-
-        google.charts.setOnLoadCallback(function(){
-          drawOrg(hierarchy, people);
-          setStatusOk("Organograma pronto para exportação");
-        });
-
-      }catch(err){
-        console.error(err);
-        setStatusErr("Falha ao processar dados.");
+  // JSONP simples (igual ao que já funcionava)
+  function cb(payload){
+    try{
+      if(!payload || payload.error){
+        document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
+        showMsg("Não foi possível carregar os dados.");
+        return;
       }
+      renderTree(payload.hierarchy || [], payload.people || []);
+    }catch(e){
+      console.error(e);
+      document.getElementById("subtitulo").textContent = "Erro ao processar dados.";
+      showMsg("Ocorreu um erro ao montar o organograma.");
+    }
+  }
+  window.cb = cb;
+
+  function renderTree(hierarchy, people){
+    // ✅ FILTRO APLICADO AQUI (de verdade)
+    const peopleFiltered = (FILTRO === "TODOS")
+      ? people
+      : people.filter(p => norm(p.posto) === FILTRO);
+
+    const peopleByFunc = new Map();
+    peopleFiltered.forEach(p => {
+      const f = String(p.func || "").trim();
+      if(!f) return;
+      if(!peopleByFunc.has(f)) peopleByFunc.set(f, []);
+      peopleByFunc.get(f).push(p);
+    });
+
+    const nodeMap = new Map();
+    const getNode = (name) => {
+      const k = String(name || "").trim();
+      if(!k) return null;
+      if(!nodeMap.has(k)) nodeMap.set(k, { name:k, children:[] });
+      return nodeMap.get(k);
     };
 
-    /* ============================
-      4) DESENHAR ORGANOGRAMA
-    ============================ */
-    function esc(s){
-      return String(s || "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;");
-    }
-
-    function funcNodeHtml(func, count){
-      const vazio = (count === 0);
-      return `
-        <div class="box">
-          <div class="tag">FUNÇÃO</div>
-          <div class="func">${esc(func)}</div>
-          <div class="meta">
-            ${count} pessoa(s)
-            ${vazio ? `<small>Sem pessoas cadastradas</small>` : ``}
-          </div>
-        </div>
-      `;
-    }
-
-    function drawOrg(hierarchy, people){
-      // Mapa função -> pessoas
-      const map = new Map();
-      for(const p of people){
-        const f = (p.func || "").trim();
-        if(!f) continue;
-        if(!map.has(f)) map.set(f, []);
-        map.get(f).push(p);
+    hierarchy.forEach(h => {
+      const func = String(h.func || "").trim();
+      const sup  = String(h.sup || "").trim();
+      if(!func) return;
+      const node = getNode(func);
+      if(sup){
+        const parent = getNode(sup);
+        if(parent && !parent.children.some(c => c.name === node.name)){
+          parent.children.push(node);
+        }
       }
+    });
 
-      // Prepara DataTable
-      const data = new google.visualization.DataTable();
-      data.addColumn("string","Name");
-      data.addColumn("string","Manager");
-      data.addColumn("string","ToolTip");
+    const childrenSet = new Set();
+    nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
 
-      // 1) Nós das funções (hierarquia)
-      //    Cria ID estável pra cada função
-      const funcId = (f) => "FUNC__" + String(f||"").trim();
+    const roots = [];
+    nodeMap.forEach(n => { if(!childrenSet.has(n.name)) roots.push(n); });
 
-      const rows = [];
-
-      // garante ordem da planilha (respeita o que você montou em HIERARQUIA_FUNCOES)
-      for(const h of hierarchy){
-        const func = (h.func || "").trim();
-        const sup  = (h.sup  || "").trim();
-        if(!func) continue;
-
-        const count = (map.get(func) || []).length;
-
-        rows.push([
-          { v: funcId(func), f: funcNodeHtml(func, count) },
-          sup ? funcId(sup) : "",
-          func
-        ]);
-      }
-
-      data.addRows(rows);
-
-      const chart = new google.visualization.OrgChart(document.getElementById("chart"));
-      chart.draw(data, { allowHtml:true });
+    if(!roots.length){
+      document.getElementById("tree").innerHTML = "";
+      showMsg("Não há dados para exportar.");
+      return;
     }
 
-    /* ============================
-      5) INJETAR SCRIPT JSONP (CORRETO)
-    ============================ */
-    (function loadData(){
-      const url = BASE + "?mode=data&callback=cb&_=" + Date.now();
-      const s = document.createElement("script");
-      s.src = url;
+    const tree = document.getElementById("tree");
+    tree.innerHTML = "";
+    document.getElementById("msg").style.display = "none";
 
-      s.onerror = () => {
-        // Esse é o erro que você estava vendo
-        setStatusErr("Erro ao carregar o Web App (Apps Script). Verifique a URL BASE e se o deploy está ativo.");
-      };
+    const topUl = document.createElement("ul");
+    roots.forEach(r => topUl.appendChild(renderNode(r, peopleByFunc)));
+    tree.appendChild(topUl);
+  }
 
-      document.head.appendChild(s);
-    })();
-  </script>
+  function renderNode(node, peopleByFunc){
+    const li = document.createElement("li");
+
+    const box = document.createElement("div");
+    box.className = "node";
+
+    const t1 = document.createElement("div");
+    t1.className = "node-title";
+    t1.textContent = "FUNÇÃO";
+
+    const t2 = document.createElement("div");
+    t2.className = "node-name";
+    t2.textContent = node.name;
+
+    box.appendChild(t1);
+    box.appendChild(t2);
+
+    const pessoas = peopleByFunc.get(node.name) || [];
+
+    if(pessoas.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Sem pessoas cadastradas";
+      box.appendChild(empty);
+    } else {
+      const chips = document.createElement("div");
+      chips.className = "chips";
+      pessoas.forEach(p => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = `${p.posto} - ${p.nome}`;
+        chips.appendChild(chip);
+      });
+      box.appendChild(chips);
+    }
+
+    li.appendChild(box);
+
+    if(node.children && node.children.length){
+      const ul = document.createElement("ul");
+      node.children.forEach(child => ul.appendChild(renderNode(child, peopleByFunc)));
+      li.appendChild(ul);
+    }
+
+    return li;
+  }
+
+  // injeta o JSONP
+  const s = document.createElement("script");
+  s.src = BASE + "?mode=data&callback=cb&_=" + Date.now();
+  s.onerror = () => {
+    document.getElementById("subtitulo").textContent = "Erro ao carregar script de dados.";
+    showMsg("Erro ao carregar o Web App (Apps Script).");
+  };
+  document.head.appendChild(s);
+</script>
+
 </body>
 </html>
