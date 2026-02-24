@@ -17,34 +17,11 @@
     --chip-border:#86dff2;
   }
 
-  body{
-    margin:0;
-    padding:18px 18px 28px;
-    font-family: Arial, sans-serif;
-    background:#fff;
-    color: var(--blue-900);
-  }
+  body{ margin:0; padding:18px 18px 28px; font-family: Arial, sans-serif; background:#fff; color: var(--blue-900); }
+  h1{ text-align:center; margin:0 0 6px 0; color: var(--blue-900); font-size: 22px; }
+  .sub{ text-align:center; margin:0 0 16px 0; font-weight:bold; color:#456; font-size: 12px; }
 
-  h1{
-    text-align:center;
-    margin:0 0 6px 0;
-    color: var(--blue-900);
-    font-size: 22px;
-  }
-
-  .sub{
-    text-align:center;
-    margin:0 0 16px 0;
-    font-weight:bold;
-    color:#456;
-    font-size: 12px;
-  }
-
-  .acoes{
-    text-align:center;
-    margin: 10px 0 16px;
-  }
-
+  .acoes{ text-align:center; margin: 10px 0 16px; }
   button{
     background: var(--blue-700);
     color:#fff;
@@ -57,21 +34,9 @@
   }
   button:hover{ background:#094bb0; }
 
-  /* ✅ CENTRALIZA o organograma */
-  .wrap{
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    width:100%;
-    padding: 8px 6px 20px;
-  }
+  .wrap{ overflow:auto; padding: 8px 6px 20px; }
 
-  .tree{
-    display:inline-block;
-    padding: 0;
-    margin: 0 auto;
-  }
-
+  .tree{ display:inline-block; padding: 0; margin: 0 auto; }
   .tree ul{
     padding-top: 18px;
     position: relative;
@@ -81,7 +46,6 @@
     justify-content:center;
     gap: 18px;
   }
-
   .tree li{
     list-style-type:none;
     text-align:center;
@@ -131,9 +95,9 @@
     position: relative;
     background: var(--box-bg);
     border: 2px solid var(--box-border);
-    border-radius: 10px;
-    min-width: 240px;
-    max-width: 320px;
+    border-radius: 8px;
+    min-width: 220px;
+    max-width: 300px;
     padding: 10px 12px 12px;
     box-shadow: 0 8px 20px rgba(0,0,0,.08);
     display: inline-block;
@@ -142,7 +106,7 @@
   .node-title{
     font-weight: 900;
     color: var(--blue-700);
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: .2px;
     margin-bottom: 6px;
     text-transform: uppercase;
@@ -153,7 +117,7 @@
     color: var(--blue-900);
     font-size: 14px;
     margin-bottom: 8px;
-    line-height: 1.15;
+    line-height: 1.1;
   }
 
   .chips{
@@ -167,7 +131,7 @@
     border:1px solid var(--chip-border);
     background: var(--chip-bg);
     border-radius: 999px;
-    padding: 6px 10px;
+    padding: 5px 8px;
     font-weight: 800;
     font-size: 11px;
     color:#053b4c;
@@ -182,23 +146,14 @@
     padding: 4px 0;
   }
 
-  .msg{
-    text-align:center;
-    font-weight:900;
-    color:#334;
-    padding: 18px 10px;
-  }
+  .msg{ text-align:center; font-weight:900; color:#334; padding: 18px 10px; }
 
   @media print{
     .acoes{ display:none !important; }
     body{ padding: 0; }
-    .wrap{ padding: 0; }
-
-    /* A4 horizontal */
-    @page{ size: A4 landscape; margin: 12mm; }
-
-    /* leve redução pra caber melhor */
+    .wrap{ overflow: visible !important; padding: 0; }
     .tree{ transform: scale(.92); transform-origin: top center; }
+    @page{ size: A4 landscape; margin: 12mm; }
     .node{ box-shadow:none !important; }
   }
 </style>
@@ -219,12 +174,12 @@
 </div>
 
 <script>
-  // ✅ TROQUE pela sua URL /exec atual
+  // ⚠️ TROQUE pela sua URL /exec atual
   const BASE =
     "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
 
   const params = new URLSearchParams(window.location.search);
-  const FILTRO_RAW = params.get("posto") || "TODOS";
+  const POSTO_FILTRO_RAW = params.get("posto") || "TODOS";
 
   function norm(t){
     return String(t || "")
@@ -234,12 +189,12 @@
       .replace(/[\u0300-\u036f]/g, "");
   }
 
-  const FILTRO = norm(FILTRO_RAW);
+  const POSTO_FILTRO = norm(POSTO_FILTRO_RAW);
 
   document.getElementById("subtitulo").textContent =
-    (FILTRO === "TODOS")
+    (POSTO_FILTRO === "TODOS")
       ? "Exportação (Todos os postos)"
-      : `Exportação (Filtro: ${FILTRO_RAW})`;
+      : `Exportação (Filtro: ${POSTO_FILTRO_RAW})`;
 
   const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
@@ -259,64 +214,26 @@
   }
 
   function renderTree(hierarchy, people){
-    // 1) aplica filtro nas pessoas
-    let peopleFiltered = people.slice();
-    if (FILTRO !== "TODOS") {
-      peopleFiltered = peopleFiltered.filter(p => norm(p.posto) === FILTRO);
-    }
-
-    // Se tiver filtro e não existir ninguém, avisa
-    if (FILTRO !== "TODOS" && peopleFiltered.length === 0) {
-      document.getElementById("tree").innerHTML = "";
-      showMsg("Nenhuma pessoa encontrada para o filtro selecionado.");
-      return;
-    }
-
-    // 2) mapa sup (func -> sup) e filhos (sup -> funcs)
-    const supByFunc = new Map();
-    const childrenBySup = new Map();
-
-    hierarchy.forEach(h => {
-      const f = String(h.func || "").trim();
-      const s = String(h.sup || "").trim();
-      if(!f) return;
-      supByFunc.set(f, s || "");
-      if(!childrenBySup.has(s || "")) childrenBySup.set(s || []);
-      childrenBySup.get(s || "").push(f);
-    });
-
-    // 3) Pessoas agrupadas por função
+    // Pessoas por função (aplica filtro só nas pessoas)
     const peopleByFunc = new Map();
-    peopleFiltered.forEach(p => {
-      const key = String(p.func || "").trim();
-      if(!key) return;
+
+    people.forEach(p => {
+      if(!p || !p.func) return;
+
+      if (POSTO_FILTRO !== "TODOS") {
+        if (norm(p.posto) !== POSTO_FILTRO) return;
+      }
+
+      const key = String(p.func).trim();
       if(!peopleByFunc.has(key)) peopleByFunc.set(key, []);
       peopleByFunc.get(key).push(p);
     });
 
-    // 4) Se filtro != TODOS: manter apenas funções que têm pessoas + seus ancestrais
-    let allowedFuncs = null;
-
-    if (FILTRO !== "TODOS") {
-      allowedFuncs = new Set();
-
-      // funcs com pessoas
-      for (const func of peopleByFunc.keys()) {
-        let cur = func;
-        while (cur) {
-          if (allowedFuncs.has(cur)) break;
-          allowedFuncs.add(cur);
-          cur = (supByFunc.get(cur) || "").trim();
-        }
-      }
-    }
-
-    // 5) Monta árvore (nodes) respeitando allowedFuncs
+    // Monta nós
     const nodeMap = new Map();
     const getNode = (name) => {
       const k = String(name || "").trim();
       if(!k) return null;
-      if (allowedFuncs && !allowedFuncs.has(k)) return null;
       if(!nodeMap.has(k)) nodeMap.set(k, { name:k, children:[] });
       return nodeMap.get(k);
     };
@@ -335,7 +252,7 @@
       }
     });
 
-    // 6) Descobre raízes (só dentro do allowedFuncs)
+    // raízes
     const childrenSet = new Set();
     nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
 
@@ -344,9 +261,9 @@
       if(!childrenSet.has(n.name)) roots.push(n);
     });
 
-    // fallback: se hierarquia não ajudou, cria nó por função existente
+    // fallback se hierarquia vazia
     if(roots.length === 0){
-      const funcs = [...new Set(peopleFiltered.map(p => String(p.func||"").trim()).filter(Boolean))];
+      const funcs = [...new Set(people.map(p => String(p.func||"").trim()).filter(Boolean))];
       roots = funcs.map(f => getNode(f)).filter(Boolean);
     }
 
@@ -356,7 +273,7 @@
       return;
     }
 
-    // 7) Render
+    // Render
     const tree = document.getElementById("tree");
     tree.innerHTML = "";
     document.getElementById("msg").style.display = "none";
